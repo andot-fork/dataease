@@ -94,6 +94,14 @@ export function fieldList(id, showLoading = true) {
   })
 }
 
+export function fieldListDQ(id, showLoading = true) {
+  return request({
+    url: '/dataset/field/listByDQ/' + id,
+    loading: showLoading,
+    method: 'post'
+  })
+}
+
 export function batchEdit(data) {
   return request({
     url: '/dataset/field/batchEdit',
@@ -103,11 +111,12 @@ export function batchEdit(data) {
   })
 }
 
-export function post(url, data, showLoading = true) {
+export function post(url, data, showLoading = true, timeout = 20000) {
   return request({
     url: url,
     method: 'post',
     loading: showLoading,
+    timeout: timeout,
     data
   })
 }

@@ -19,7 +19,7 @@
           <div class="filter-widget-icon">
             <i :class="(widget.icon || 'el-icon-setting') + ' widget-icon-i'" />
           </div>
-          <div class="filter-widget-text">{{ widget.label }}</div>
+          <div class="filter-widget-text">{{ $t(widget.label) || widget.label }}</div>
         </div>
       </div>
     </div>
@@ -51,10 +51,13 @@ export default {
         ],
         '文本过滤组件': [
           'textSelectWidget',
+          'textSelectGridWidget',
           'textInputWidget'
         ],
         '数字过滤组件': [
-          'numberSelectWidget'
+          'numberSelectWidget',
+          'numberSelectGridWidget',
+          'numberRangeWidget'
         ]
         // '按钮': [
         //   'buttonSureWidget'
@@ -201,7 +204,8 @@ export default {
   .tree-filter:hover {
     background-color: #37b4aa;
     .filter-widget-icon {
-        color: #37b4aa;
+        background-color: #37b4aa;
+        color: #fff;
     }
     .filter-widget-text {
         color: #fff;
@@ -228,7 +232,7 @@ export default {
       height: 24px;
       position: relative;
       flex-shrink: 0;
-      font-size: 24px;
+      font-size: 24px !important;
       margin: auto;
       font-family: fineui;
       font-style: normal;

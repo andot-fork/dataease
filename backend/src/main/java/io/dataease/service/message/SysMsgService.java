@@ -10,7 +10,12 @@ import io.dataease.base.mapper.ext.ExtSysMsgMapper;
 import io.dataease.commons.constants.SysMsgConstants;
 import io.dataease.commons.utils.AuthUtils;
 import io.dataease.commons.utils.CommonBeanFactory;
-import io.dataease.controller.message.dto.*;
+import io.dataease.controller.sys.request.BatchSettingRequest;
+import io.dataease.controller.sys.request.MsgRequest;
+import io.dataease.controller.sys.request.MsgSettingRequest;
+import io.dataease.controller.sys.response.MsgGridDto;
+import io.dataease.controller.sys.response.SettingTreeNode;
+import io.dataease.controller.sys.response.SubscribeNode;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.cache.annotation.CacheEvict;
@@ -67,7 +72,7 @@ public class SysMsgService {
         return sysMsgs;
     }
 
-    public List<MsgGridDto> queryGrid(Long userId, MsgRequest msgRequest) {
+    public List<MsgGridDto> queryGrid(Long userId, MsgRequest msgRequest, List<Long> typeIds) {
         String orderClause = " create_time desc";
         SysMsgExample example = new SysMsgExample();
         SysMsgExample.Criteria criteria = example.createCriteria();
@@ -79,12 +84,15 @@ public class SysMsgService {
             orderClause = String.join(", ", orders);
         }
 
-        if (ObjectUtils.isNotEmpty(msgRequest.getType())) {
+        /*if (ObjectUtils.isNotEmpty(msgRequest.getType())) {
             SysMsgTypeExample sysMsgTypeExample = new SysMsgTypeExample();
             sysMsgTypeExample.createCriteria().andPidEqualTo(msgRequest.getType());
 
             List<SysMsgType> sysMsgTypes = sysMsgTypeMapper.selectByExample(sysMsgTypeExample);
             List<Long> typeIds = sysMsgTypes.stream().map(SysMsgType::getMsgTypeId).collect(Collectors.toList());
+            criteria.andTypeIdIn(typeIds);
+        }*/
+        if (CollectionUtils.isNotEmpty(typeIds)){
             criteria.andTypeIdIn(typeIds);
         }
 
@@ -106,7 +114,7 @@ public class SysMsgService {
     }
 
     public void setBatchReaded(List<Long> msgIds) {
-        extSysMsgMapper.batchStatus(msgIds);
+        extSysMsgMapper.batchStatus(msgIds, System.currentTimeMillis());
     }
 
     public void batchDelete(List<Long> msgIds) {
@@ -173,7 +181,25 @@ public class SysMsgService {
         SysMsgSettingExample example = new SysMsgSettingExample();
         example.createCriteria().andUserIdEqualTo(userId);
         List<SysMsgSetting> sysMsgSettings = sysMsgSettingMapper.selectByExample(example);
+        sysMsgSettings = addDefault(sysMsgSettings);
         return sysMsgSettings;
+    }
+
+    public List<SysMsgSetting> defaultSettings() {
+        SysMsgSetting sysMsgSetting1 = new SysMsgSetting();
+        sysMsgSetting1.setTypeId(2L);
+        sysMsgSetting1.setChannelId(1L);
+        sysMsgSetting1.setEnable(true);
+       // sysMsgSetting1.setUserId(userId);
+        SysMsgSetting sysMsgSetting2 = new SysMsgSetting();
+        sysMsgSetting2.setTypeId(6L);
+        sysMsgSetting2.setChannelId(1L);
+        sysMsgSetting2.setEnable(true);
+        //sysMsgSetting2.setUserId(userId);
+        List<SysMsgSetting> lists = new ArrayList<>();
+        lists.add(sysMsgSetting1);
+        lists.add(sysMsgSetting2);
+        return lists;
     }
 
     /**
@@ -197,12 +223,40 @@ public class SysMsgService {
             });
             return;
         }
+
         SysMsgSetting sysMsgSetting = new SysMsgSetting();
-        sysMsgSetting.setEnable(true);
+
         sysMsgSetting.setChannelId(channelId);
         sysMsgSetting.setTypeId(typeId);
+
+        List<SysMsgSetting> defaultSettings = defaultSettings();
+
+        sysMsgSetting.setEnable(!defaultSettings.stream().anyMatch(setting -> setting.match(sysMsgSetting)));
+
         sysMsgSetting.setUserId(userId);
+
         sysMsgSettingMapper.insert(sysMsgSetting);
+    }
+
+
+    @Transactional
+    @CacheEvict(value = SysMsgConstants.SYS_MSG_USER_SUBSCRIBE, key = "#userId")
+    public void batchUpdate(BatchSettingRequest request, Long userId) {
+        // 先删除
+        SysMsgSettingExample example = new SysMsgSettingExample();
+        example.createCriteria().andUserIdEqualTo(userId).andChannelIdEqualTo(request.getChannelId()).andTypeIdIn(request.getTypeIds());
+        sysMsgSettingMapper.deleteByExample(example);
+        // 再写入
+        List<SysMsgSetting> settings = request.getTypeIds().stream().map(typeId -> {
+            SysMsgSetting sysMsgSetting = new SysMsgSetting();
+            sysMsgSetting.setUserId(userId);
+            sysMsgSetting.setTypeId(typeId);
+            sysMsgSetting.setChannelId(request.getChannelId());
+            sysMsgSetting.setEnable(request.getEnable());
+            return sysMsgSetting;
+        }).collect(Collectors.toList());
+
+        extSysMsgMapper.batchInsert(settings);
     }
 
     public void sendMsg(Long userId, Long typeId, Long channelId, String content, String param) {
@@ -224,8 +278,13 @@ public class SysMsgService {
     @Cacheable(value = SysMsgConstants.SYS_MSG_USER_SUBSCRIBE, key = "#userId")
     public List<SubscribeNode> subscribes(Long userId) {
         SysMsgSettingExample example = new SysMsgSettingExample();
-        example.createCriteria().andUserIdEqualTo(userId).andEnableEqualTo(true);
+        /*example.createCriteria().andUserIdEqualTo(userId).andEnableEqualTo(true);*/
+        example.createCriteria().andUserIdEqualTo(userId);
         List<SysMsgSetting> sysMsgSettings = sysMsgSettingMapper.selectByExample(example);
+        // 添加默认订阅
+        sysMsgSettings = addDefault(sysMsgSettings);
+        sysMsgSettings = sysMsgSettings.stream().filter(SysMsgSetting::getEnable).collect(Collectors.toList());
+        // sysMsgSettings.addAll(defaultSettings());
         List<SubscribeNode> resultLists = sysMsgSettings.stream().map(item -> {
             SubscribeNode subscribeNode = new SubscribeNode();
             subscribeNode.setTypeId(item.getTypeId());
@@ -233,6 +292,17 @@ public class SysMsgService {
             return subscribeNode;
         }).collect(Collectors.toList());
         return resultLists;
+    }
+
+    public List<SysMsgSetting> addDefault(List<SysMsgSetting> sourceLists) {
+        List<SysMsgSetting> defaultSettings = defaultSettings();
+
+        defaultSettings.forEach(setting -> {
+            if (!sourceLists.stream().anyMatch(item -> item.match(setting))){
+                sourceLists.add(setting);
+            }
+        });
+        return sourceLists;
     }
 
 }

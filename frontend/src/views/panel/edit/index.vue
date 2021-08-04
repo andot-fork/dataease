@@ -96,6 +96,7 @@
 
         <div
           id="canvasInfo"
+          :class="{'style-hidden':canvasStyleData.selfAdaption}"
           class="content this_canvas"
           @drop="handleDrop"
           @dragover="handleDragOver"
@@ -156,7 +157,7 @@
     <fullscreen style="height: 100%;background: #f7f8fa;overflow-y: auto" :fullscreen.sync="previewVisible">
       <Preview v-if="previewVisible" :in-screen="!previewVisible" :show-type="canvasStyleData.selfAdaption?'full':'width'" />
     </fullscreen>
-    <input id="input" ref="files" type="file" accept="image/*" hidden @change="handleFileChange">
+    <input id="input" ref="files" type="file" accept="image/*" hidden @click="e => {e.target.value = '';}" @change="handleFileChange">
 
     <!--矩形样式组件-->
     <RectangleAttr v-if="curComponent&&curComponent.type==='rect-shape'" :scroll-left="scrollLeft" :scroll-top="scrollTop" />
@@ -274,7 +275,8 @@ export default {
       currentDropElement: null,
       adviceGroupId: null,
       scrollLeft: 0,
-      scrollTop: 0
+      scrollTop: 0,
+      timeMachine: null
     }
   },
 
@@ -305,6 +307,12 @@ export default {
     },
     panelInfo(newVal, oldVal) {
       this.init(newVal.id)
+    },
+    '$store.state.styleChangeTimes'() {
+      if (this.$store.state.styleChangeTimes > 0) {
+        this.destroyTimeMachine()
+        this.recordStyleChange(this.$store.state.styleChangeTimes)
+      }
     }
   },
   created() {
@@ -535,8 +543,10 @@ export default {
       this.$forceUpdate()
     },
     editDialog() {
-      const serviceName = this.curComponent.serviceName
-      this.currentWidget = ApplicationContext.getService(serviceName)
+      if (this.curComponent && this.curComponent.serviceName) {
+        const serviceName = this.curComponent.serviceName
+        this.currentWidget = ApplicationContext.getService(serviceName)
+      }
       this.currentFilterCom = this.curComponent
       this.openFilterDialog()
     },
@@ -636,7 +646,6 @@ export default {
       })
     },
     newViewInfo(newViewInfo) {
-      debugger
       let component
       const newComponentId = uuid.v1()
       // 用户视图设置 复制一个模板
@@ -671,9 +680,23 @@ export default {
       }
     },
     canvasScroll(event) {
-      debugger
       this.scrollLeft = event.target.scrollLeft
       this.scrollTop = event.target.scrollTop
+    },
+    destroyTimeMachine() {
+      this.timeMachine && clearTimeout(this.timeMachine)
+      this.timeMachine = null
+    },
+
+    // 如果内部样式有变化 1秒钟后保存一个镜像
+    recordStyleChange(index) {
+      this.timeMachine = setTimeout(() => {
+        if (index === this.$store.state.styleChangeTimes) {
+          this.$store.commit('recordSnapshot')
+          this.$store.state.styleChangeTimes = 0
+        }
+        this.destroyTimeMachine()
+      }, 1000)
     }
   }
 }
@@ -803,5 +826,8 @@ export default {
     padding: 1px 15px !important;
   }
 }
+  .style-hidden{
+    overflow: hidden;
+  }
 
 </style>

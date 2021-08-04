@@ -126,9 +126,11 @@ export default {
     expires: 'Login token expired, please login again',
     tokenError: 'Token error, please login again',
     username_error: 'Please enter the correct ID',
-    password_error: 'The password can not be less than 8 digits'
+    password_error: 'The password can not be less than 8 digits',
+    login_again: 'Login again'
   },
   commons: {
+    no_target_permission: 'No permission',
     success: 'Success',
     switch_lang: 'Switch Language Success',
     close: 'Close',
@@ -332,7 +334,9 @@ export default {
     input_pwd: 'Please input password',
     message_box: {
       alert: 'Alert',
-      confirm: 'Confirm'
+      confirm: 'Confirm',
+      ok: 'Confirm',
+      cancel: 'Cancel'
     }
   },
   documentation: {
@@ -592,7 +596,7 @@ export default {
     create_view: 'Create Chart',
     data_preview: 'Data preview',
     dimension: 'Dimension',
-    quota: 'Index',
+    quota: 'Quota',
     title: 'Title',
     show: 'Show',
     chart_type: 'Chart Type',
@@ -817,11 +821,13 @@ export default {
     drag_block_funnel_width: 'Funnel Width',
     drag_block_funnel_split: 'Funnel Split',
     drag_block_radar_length: 'Branch Length',
-    drag_block_radar_label: 'Branch Label'
+    drag_block_radar_label: 'Branch Label',
+    axis_label_rotate: 'Label Rotate'
   },
   dataset: {
     sheet_warn: 'There are multiple sheet pages, and the first one is extracted by default',
     datalist: 'Data Set',
+    name: 'DataSet Name',
     add_group: 'Add Group',
     add_scene: 'Add Scene',
     group: 'Group',
@@ -866,6 +872,7 @@ export default {
     sync_now: 'Update Now',
     add_task: 'Add Task',
     task_name: 'Task Name',
+    task_id: 'Task ID',
     start_time: 'Start Time',
     end_time: 'End Time',
     status: 'State',
@@ -956,9 +963,10 @@ export default {
       task_status: 'Task status',
       dataset: 'Data set',
       search_by_name: 'Search by name',
-      underway: 'Running',
-      stopped: 'Stopped',
-      exec: 'Execute',
+      underway: 'Waiting for execution',
+      stopped: 'End',
+      pending: 'Pause',
+      exec: 'Execute Once',
       confirm_exec: 'Manual trigger execution？',
       change_success: 'State switch successful'
     },

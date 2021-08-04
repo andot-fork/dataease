@@ -1,6 +1,5 @@
 package io.dataease.base.mapper.ext;
 
-import io.dataease.base.domain.DatasetTableTaskLog;
 import io.dataease.base.mapper.ext.query.GridExample;
 import io.dataease.dto.dataset.DataSetTaskDTO;
 import io.dataease.dto.dataset.DataSetTaskLogDTO;
@@ -14,7 +13,13 @@ import java.util.List;
  */
 @Mapper
 public interface ExtDataSetTaskMapper {
-    List<DataSetTaskLogDTO> list(GridExample example);
+    List<DataSetTaskLogDTO> listTaskLog(GridExample example);
+
+    List<DataSetTaskLogDTO> listUserTaskLog(GridExample example);
 
     List<DataSetTaskDTO> taskList(GridExample example);
+
+    List<DataSetTaskDTO> userTaskList(GridExample example);
+
+    List<DataSetTaskDTO> taskWithTriggers(GridExample example);
 }

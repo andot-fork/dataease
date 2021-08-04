@@ -315,7 +315,6 @@
 
 <script>
 import { post, chartGroupTree } from '@/api/chart/chart'
-import { authModel } from '@/api/system/sysAuth'
 import TableSelector from '../view/TableSelector'
 import GroupMoveSelector from '../components/TreeSelector/GroupMoveSelector'
 import ChartMoveSelector from '../components/TreeSelector/ChartMoveSelector'
@@ -535,7 +534,8 @@ export default {
               type: 'success',
               showClose: true
             })
-            this.treeNode(this.groupForm)
+            // this.treeNode(this.groupForm)
+            this.refreshNodeBy(group.pid)
           })
         } else {
           // this.$message({
@@ -562,7 +562,7 @@ export default {
             // this.chartTree()
             this.refreshNodeBy(view.sceneId)
             // this.$router.push('/chart/home')
-            this.$emit('switchComponent', { name: '' })
+            // this.$emit('switchComponent', { name: '' })
             this.$store.dispatch('chart/setTable', null)
           })
         } else {
@@ -588,7 +588,8 @@ export default {
             message: this.$t('chart.delete_success'),
             showClose: true
           })
-          this.treeNode(this.groupForm)
+          // this.treeNode(this.groupForm)
+          this.refreshNodeBy(data.pid)
         })
       }).catch(() => {
       })
@@ -679,7 +680,7 @@ export default {
       }
     },
     sceneClick(data, node) {
-      this.$emit('switchComponent', { name: 'ChartEdit', param: { 'id': data.id }})
+      this.$emit('switchComponent', { name: 'ChartEdit', param: data })
     },
     reviewChartList() {
       if (this.$store.state.chart.chartSceneData) {
@@ -741,6 +742,9 @@ export default {
         background: DEFAULT_BACKGROUND_COLOR,
         split: DEFAULT_SPLIT
       })
+      view.xaxis = JSON.stringify([])
+      view.yaxis = JSON.stringify([])
+      view.extStack = JSON.stringify([])
       view.customFilter = JSON.stringify([])
       post('/chart/view/save', view).then(response => {
         this.closeCreateChart()
@@ -750,7 +754,7 @@ export default {
         if (this.optFrom === 'panel') {
           this.$emit('newViewInfo', { 'id': response.data.id })
         } else {
-          this.$emit('switchComponent', { name: 'ChartEdit', param: { 'id': response.data.id }})
+          this.$emit('switchComponent', { name: 'ChartEdit', param: response.data })
           // this.$store.dispatch('chart/setViewId', response.data.id)
           // this.chartTree()
           this.refreshNodeBy(view.sceneId)
@@ -886,14 +890,18 @@ export default {
 
     searchTree(val) {
       const queryCondition = {
-        withExtend: 'parent',
-        modelType: 'chart',
+        // withExtend: 'parent',
+        // modelType: 'chart',
         name: val
       }
-      authModel(queryCondition).then(res => {
-        // this.highlights(res.data)
+      // authModel(queryCondition).then(res => {
+      //   // this.highlights(res.data)
+      //   this.tData = this.buildTree(res.data)
+      //   // console.log(this.tData)
+      // })
+
+      post('/chart/view/search', queryCondition).then(res => {
         this.tData = this.buildTree(res.data)
-        // console.log(this.tData)
       })
     },
 
@@ -905,8 +913,8 @@ export default {
       const roots = []
       arrs.forEach(el => {
         // 判断根节点 ###
-        el.type = el.modelInnerType
-        el.isLeaf = el.leaf
+        // el.type = el.modelInnerType
+        // el.isLeaf = el.leaf
         if (el[this.treeProps.parentId] === null || el[this.treeProps.parentId] === 0 || el[this.treeProps.parentId] === '0') {
           roots.push(el)
           return

@@ -9,12 +9,12 @@
       <div>
         <slot name="toolbar" />
       </div>
-      <fu-search-bar v-bind="searchConfig" @exec="search">
+      <fu-search-bar v-bind="searchConfig"  @exec="search" ref="search">
         <template #complex>
           <slot name="complex" />
         </template>
         <slot name="buttons" />
-        <fu-table-column-select :columns="columns" />
+        <fu-table-column-select v-if="!hideColumns" :columns="columns" />
       </fu-search-bar>
     </div>
 
@@ -46,6 +46,10 @@ export default {
       type: Array,
       default: () => []
     },
+    hideColumns: {
+      type: Boolean,
+      default: false
+    },
     // eslint-disable-next-line vue/require-default-prop
     localKey: String, // 如果需要记住选择的列，则这里添加一个唯一的Key
     // eslint-disable-next-line vue/require-default-prop
@@ -53,11 +57,20 @@ export default {
     // eslint-disable-next-line vue/require-default-prop
     searchConfig: Object,
     // eslint-disable-next-line vue/require-default-prop
-    paginationConfig: Object
+    paginationConfig: Object,
+    transCondition: {
+      type: Object,
+      default: null
+    }
   },
   data() {
     return {
-      condition: {}
+      condition: {},
+    }
+  },
+  mounted() {
+    if (this.transCondition !== null) {
+      this.$refs.search.setConditions(this.transCondition)
     }
   },
   methods: {

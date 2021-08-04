@@ -126,9 +126,11 @@ export default {
     expires: '登录信息过期，请重新登录',
     tokenError: '登陆信息错误，请重新登录',
     username_error: '请输入正确的 ID',
-    password_error: '密码不小于 8 位'
+    password_error: '密码不小于 8 位',
+    login_again: '重新登录'
   },
   commons: {
+    no_target_permission: '没有权限',
     success: '成功',
     switch_lang: '切换语言成功',
     close: '关闭',
@@ -332,7 +334,9 @@ export default {
     input_pwd: '请输入密码',
     message_box: {
       alert: '警告',
-      confirm: '确认'
+      confirm: '确认',
+      ok: '确认',
+      cancel: '取消'
     }
   },
   documentation: {
@@ -817,11 +821,13 @@ export default {
     drag_block_funnel_width: '漏斗层宽',
     drag_block_funnel_split: '漏斗分层',
     drag_block_radar_length: '分支长度',
-    drag_block_radar_label: '分支标签'
+    drag_block_radar_label: '分支标签',
+    axis_label_rotate: '标签角度'
   },
   dataset: {
     sheet_warn: '有多个 Sheet 页，默认抽取第一个',
     datalist: '数据集',
+    name: '数据集名称',
     add_group: '添加分组',
     add_scene: '添加场景',
     group: '分组',
@@ -866,6 +872,7 @@ export default {
     sync_now: '立即更新',
     add_task: '添加任务',
     task_name: '任务名称',
+    task_id: '任务ID',
     start_time: '开始时间',
     end_time: '结束时间',
     status: '状态',
@@ -956,9 +963,10 @@ export default {
       task_status: '任务状态',
       dataset: '数据集',
       search_by_name: '根据名称搜索',
-      underway: '运行中',
-      stopped: '停止',
-      exec: '执行',
+      underway: '等待执行',
+      stopped: '执行结束',
+      pending: '暂停',
+      exec: '执行一次',
       confirm_exec: '手动触发执行？',
       change_success: '状态切换成功'
     },
@@ -1001,7 +1009,8 @@ export default {
     oracle_service_name: '服务名',
     get_schema: '获取 Schema',
     schema: '数据库 Schema',
-    please_choose_schema: '请选择数据库 Schema'
+    please_choose_schema: '请选择数据库 Schema',
+    edit_datasource_msg: '修改数据源信息，可能会导致改数据源下的数据集不可用，确认修改？'
   },
   pblink: {
     key_pwd: '请输入密码打开链接',

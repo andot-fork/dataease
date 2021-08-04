@@ -5,15 +5,17 @@
 </template>
 
 <script>
-import { BASE_BAR, BASE_LINE, HORIZONTAL_BAR, BASE_PIE, BASE_FUNNEL, BASE_RADAR, BASE_GAUGE } from '../chart/chart'
+import { BASE_BAR, BASE_LINE, HORIZONTAL_BAR, BASE_PIE, BASE_FUNNEL, BASE_RADAR, BASE_GAUGE, BASE_MAP } from '../chart/chart'
 import { baseBarOption, stackBarOption, horizontalBarOption, horizontalStackBarOption } from '../chart/bar/bar'
 import { baseLineOption, stackLineOption } from '../chart/line/line'
 import { basePieOption, rosePieOption } from '../chart/pie/pie'
+import { baseMapOption } from '../chart/map/map'
 import { baseFunnelOption } from '../chart/funnel/funnel'
 import { baseRadarOption } from '../chart/radar/radar'
 import { baseGaugeOption } from '../chart/gauge/gauge'
-import eventBus from '@/components/canvas/utils/eventBus'
+// import eventBus from '@/components/canvas/utils/eventBus'
 import { uuid } from 'vue-uuid'
+import { geoJson } from '@/api/map/map'
 
 export default {
   name: 'ChartComponent',
@@ -33,7 +35,8 @@ export default {
   data() {
     return {
       myChart: {},
-      chartId: uuid.v1()
+      chartId: uuid.v1(),
+      currentGeoJson: null
     }
   },
   watch: {
@@ -93,6 +96,40 @@ export default {
       } else if (chart.type === 'gauge') {
         chart_option = baseGaugeOption(JSON.parse(JSON.stringify(BASE_GAUGE)), chart)
       }
+
+      if (chart.type === 'map') {
+        const customAttr = JSON.parse(chart.customAttr)
+        if (!customAttr.areaCode) return
+
+        if (this.currentGeoJson) {
+          this.initMapChart(this.currentGeoJson, chart)
+          return
+        }
+
+        if (this.$store.getters.geoMap[customAttr.areaCode]) {
+          this.currentGeoJson = this.$store.getters.geoMap[customAttr.areaCode]
+          this.initMapChart(this.currentGeoJson, chart)
+          return
+        }
+
+        geoJson(customAttr.areaCode).then(res => {
+          this.initMapChart(res.data, chart)
+
+          this.$store.dispatch('map/setGeo', {
+            key: customAttr.areaCode,
+            value: res.data
+          })
+          this.currentGeoJson = res.data
+        })
+        return
+      }
+      this.myEcharts(chart_option)
+    },
+    initMapChart(geoJson, chart) {
+      // this.$echarts.registerMap('HK', geoJson)
+      this.$echarts.getMap('HK') || this.$echarts.registerMap('HK', geoJson)
+      const base_json = JSON.parse(JSON.stringify(BASE_MAP))
+      const chart_option = baseMapOption(base_json, chart)
       this.myEcharts(chart_option)
     },
     myEcharts(option) {

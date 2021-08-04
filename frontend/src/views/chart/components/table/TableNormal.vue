@@ -12,7 +12,7 @@
       :row-style="getRowStyle"
       class="table-class"
       :class="chart.id"
-      show-summary
+      :show-summary="showSummary"
       :summary-method="summaryMethod"
     >
       <ux-table-column
@@ -48,6 +48,11 @@ export default {
       default: function() {
         return {}
       }
+    },
+    showSummary: {
+      type: Boolean,
+      required: false,
+      default: true
     }
   },
   data() {
@@ -263,5 +268,9 @@ export default {
 <style scoped>
   .table-class>>>.body--wrapper{
     background: rgba(1,1,1,0);
+  }
+  .table-class>>>.elx-cell{
+    max-height: none!important;
+    line-height: normal!important;
   }
 </style>

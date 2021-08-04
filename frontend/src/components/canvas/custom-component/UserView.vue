@@ -8,7 +8,7 @@
       'rect-shape'
     ]"
   >
-    <i v-if="requestStatus==='success'" style="right:25px;position: absolute;z-index: 2" class="icon iconfont icon-fangda" @click.stop="openChartDetailsDialog" />
+    <!--    <i v-if="requestStatus==='success'" style="right:25px;position: absolute;z-index: 2" class="icon iconfont icon-fangda" @click.stop="openChartDetailsDialog" />-->
     <div v-if="requestStatus==='error'" class="chart-error-class">
       <div style="font-size: 12px; color: #9ea6b2;height: 100%;display: flex;align-items: center;justify-content: center;">
         {{ message }},{{ $t('chart.chart_show_error') }}
@@ -25,10 +25,10 @@
 <script>
 
 import { viewData } from '@/api/panel/panel'
+import { viewInfo } from '@/api/link'
 import ChartComponent from '@/views/chart/components/ChartComponent.vue'
 import TableNormal from '@/views/chart/components/table/TableNormal'
 import LabelNormal from '../../../views/chart/components/normal/LabelNormal'
-import UserViewDialog from './UserViewDialog'
 import { uuid } from 'vue-uuid'
 
 import { mapState } from 'vuex'
@@ -36,11 +36,10 @@ import { isChange } from '@/utils/conditionUtil'
 import { BASE_CHART_STRING } from '@/views/chart/chart/chart'
 import eventBus from '@/components/canvas/utils/eventBus'
 import { deepCopy } from '@/components/canvas/utils/utils'
-import SettingMenu from '@/components/canvas/components/Editor/SettingMenu'
-
+import { getToken, getLinkToken } from '@/utils/auth'
 export default {
   name: 'UserView',
-  components: { ChartComponent, TableNormal, LabelNormal, UserViewDialog, SettingMenu },
+  components: { ChartComponent, TableNormal, LabelNormal },
   props: {
     element: {
       type: Object,
@@ -67,6 +66,10 @@ export default {
       type: Boolean,
       required: false,
       default: false
+    },
+    componentIndex: {
+      type: Number,
+      required: false
     }
   },
   data() {
@@ -129,7 +132,6 @@ export default {
     this.getData(this.element.propValue.viewId)
   },
   mounted() {
-
   },
   methods: {
     mergeStyle() {
@@ -163,7 +165,14 @@ export default {
       if (id) {
         this.requestStatus = 'waiting'
         this.message = null
-        viewData(id, this.filter).then(response => {
+
+        // 增加判断 仪表板公共连接中使用viewInfo 正常使用viewData
+        let method = viewData
+        if (!getToken() && getLinkToken()) {
+          method = viewInfo
+        }
+
+        method(id, this.filter).then(response => {
           // 将视图传入echart组件
           if (response.success) {
             this.chart = response.data

@@ -2,7 +2,6 @@ package io.dataease.datasource.provider;
 
 import com.google.gson.Gson;
 import com.mchange.v2.c3p0.ComboPooledDataSource;
-import io.dataease.controller.handler.annotation.I18n;
 import io.dataease.datasource.constants.DatasourceTypes;
 import io.dataease.datasource.dto.MysqlConfigration;
 import io.dataease.datasource.dto.OracleConfigration;
@@ -15,7 +14,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import java.beans.PropertyVetoException;
 import java.sql.*;
-import java.text.MessageFormat;
 import java.util.*;
 
 @Service("jdbc")
@@ -134,7 +132,7 @@ public class JdbcProvider extends DatasourceProvider {
         } catch (SQLException e) {
             DataEaseException.throwException(e);
         } catch (Exception e) {
-            DataEaseException.throwException(e);
+            DataEaseException.throwException(Translator.get("i18n_datasource_connect_error") + e.getMessage());
         } finally {
             if(connection != null){
                 connection.close();
@@ -185,6 +183,9 @@ public class JdbcProvider extends DatasourceProvider {
             field.setFieldType(t);
             field.setFieldSize(metaData.getColumnDisplaySize(j + 1));
             if(t.equalsIgnoreCase("LONG")){field.setFieldSize(65533);} //oracle LONG
+            if(StringUtils.isNotEmpty(t) && t.toLowerCase().contains("date") && field.getFieldSize() < 50 ){
+                field.setFieldSize(50);
+            }
             fieldList.add(field);
         }
         return fieldList;
@@ -306,7 +307,7 @@ public class JdbcProvider extends DatasourceProvider {
             resultSet.close();
             ps.close();
         } catch (Exception e) {
-            DataEaseException.throwException(e);
+            DataEaseException.throwException(Translator.get("i18n_datasource_connect_error") + e.getMessage());
         } finally {
             if(con != null){con.close();}
         }
@@ -398,6 +399,7 @@ public class JdbcProvider extends DatasourceProvider {
         String driver = null;
         String jdbcurl = null;
         DatasourceTypes datasourceType = DatasourceTypes.valueOf(datasourceRequest.getDatasource().getType());
+        Properties props = new Properties();
         switch (datasourceType) {
             case mysql:
                 MysqlConfigration mysqlConfigration = new Gson().fromJson(datasourceRequest.getDatasource().getConfiguration(), MysqlConfigration.class);
@@ -426,13 +428,14 @@ public class JdbcProvider extends DatasourceProvider {
                 password = oracleConfigration.getPassword();
                 driver = oracleConfigration.getDriver();
                 jdbcurl = oracleConfigration.getJdbc();
+                props.put( "oracle.net.CONNECT_TIMEOUT" , "5000") ;
+//                props.put( "oracle.jdbc.ReadTimeout" , "5000" ) ;
                 break;
             default:
                 break;
         }
 
         Class.forName(driver);
-        Properties props = new Properties();
         props.setProperty("user", username);
         if (StringUtils.isNotBlank(password)) {
             props.setProperty("password", password);

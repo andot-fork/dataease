@@ -34,9 +34,9 @@
         <el-button v-if="table.type ==='sql'" size="mini" @click="editSql">
           {{ $t('dataset.edit_sql') }}
         </el-button>
-        <el-button size="mini" @click="edit">
-          {{ $t('dataset.edit_field') }}
-        </el-button>
+        <!--        <el-button size="mini" @click="edit">-->
+        <!--          {{ $t('dataset.edit_field') }}-->
+        <!--        </el-button>-->
         <!--        <el-button size="mini" type="primary" @click="createChart">-->
         <!--          {{$t('dataset.create_view')}}-->
         <!--        </el-button>-->
@@ -44,14 +44,17 @@
     </el-row>
     <el-divider />
 
-    <el-tabs v-model="tabActive">
+    <el-tabs v-model="tabActive" @tab-click="tabClick">
       <el-tab-pane :label="$t('dataset.data_preview')" name="dataPreview">
         <tab-data-preview :param="param" :table="table" :fields="fields" :data="data" :page="page" :form="tableViewRowForm" @reSearch="reSearch" />
+      </el-tab-pane>
+      <el-tab-pane :label="$t('dataset.field_manage')" name="fieldEdit">
+        <field-edit :param="param" />
       </el-tab-pane>
       <el-tab-pane v-if="table.type !== 'custom'" :label="$t('dataset.join_view')" name="joinView">
         <union-view :param="param" :table="table" />
       </el-tab-pane>
-      <el-tab-pane v-if="table.mode === 1 && (table.type === 'db' || table.type === 'sql')" :label="$t('dataset.update_info')" name="updateInfo">
+      <el-tab-pane v-if="table.mode === 1 && (table.type === 'excel' || table.type === 'db' || table.type === 'sql')" :label="$t('dataset.update_info')" name="updateInfo">
         <update-info :param="param" :table="table" />
       </el-tab-pane>
     </el-tabs>
@@ -59,15 +62,16 @@
 </template>
 
 <script>
-import { getTable, post } from '@/api/dataset/dataset'
+import { post } from '@/api/dataset/dataset'
 import TabDataPreview from './TabDataPreview'
 import UpdateInfo from './UpdateInfo'
 import DatasetChartDetail from '../common/DatasetChartDetail'
 import UnionView from './UnionView'
+import FieldEdit from './FieldEdit'
 
 export default {
   name: 'ViewTable',
-  components: { UnionView, DatasetChartDetail, UpdateInfo, TabDataPreview },
+  components: { FieldEdit, UnionView, DatasetChartDetail, UpdateInfo, TabDataPreview },
   props: {
     param: {
       type: Object,
@@ -101,6 +105,7 @@ export default {
   },
   watch: {
     'param': function() {
+      this.tabActive = 'dataPreview'
       this.initTable(this.param.id)
     }
   },
@@ -112,12 +117,12 @@ export default {
   },
   methods: {
     initTable(id) {
-      this.tabActive = 'dataPreview'
+      this.resetPage()
       this.tableViewRowForm.row = 1000
       if (id !== null) {
         this.fields = []
         this.data = []
-        getTable(id, true).then(response => {
+        post('/dataset/table/getWithPermission/' + id, null).then(response => {
           this.table = response.data
           this.initPreviewData(this.page)
         }).catch(res => {
@@ -129,7 +134,7 @@ export default {
     initPreviewData(page) {
       if (this.table.id) {
         this.table.row = this.tableViewRowForm.row
-        post('/dataset/table/getPreviewData/' + page.page + '/' + page.pageSize, this.table).then(response => {
+        post('/dataset/table/getPreviewData/' + page.page + '/' + page.pageSize, this.table, true, 30000).then(response => {
           this.fields = response.data.fields
           this.data = response.data.data
           this.page = response.data.page
@@ -194,6 +199,20 @@ export default {
     msg2Current(sourceParam) {
       this.tabActive = 'updateInfo'
       this.table.msgTaskId = sourceParam.taskId
+    },
+
+    resetPage() {
+      this.page = {
+        page: 1,
+        pageSize: 100,
+        show: 1000
+      }
+    },
+
+    tabClick() {
+      if (this.tabActive === 'dataPreview') {
+        this.initTable(this.param.id)
+      }
     }
   }
 }

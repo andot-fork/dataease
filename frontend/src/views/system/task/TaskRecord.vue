@@ -1,8 +1,15 @@
 <template>
   <el-col>
-    <el-row style="margin-top: 10px;">
-      <complex-table :data="data" :columns="columns" local-key="datasetTaskRecord" :search-config="searchConfig" :pagination-config="paginationConfig" @select="select" @search="search" @sort-change="sortChange">
-        <el-table-column prop="name" :label="$t('dataset.task_name')"/>
+    <el-row style="margin-top: 10px;" v-loading="$store.getters.loadingMap[$store.getters.currentPath]">
+      <complex-table :data="data" :columns="columns" local-key="datasetTaskRecord" :search-config="searchConfig" :transCondition="transCondition" :pagination-config="paginationConfig" @select="select" @search="search" @sort-change="sortChange">
+        <el-table-column prop="name" :label="$t('dataset.task_name')">
+          <template slot-scope="scope">
+            <span>
+              <el-link :type="matchLogId && scope.row.id === matchLogId ? 'danger': ''" style="font-size: 12px" @click="jumpTask(scope.row)">{{ scope.row.name }}</el-link>
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="datasetName" :label="$t('dataset.task.dataset')" />
         <el-table-column prop="startTime" :label="$t('dataset.start_time')">
           <template slot-scope="scope">
             <span>{{ scope.row.startTime | timestampFormatDate }}</span>
@@ -45,18 +52,25 @@
 </template>
 
 <script>
-import LayoutContent from '@/components/business/LayoutContent'
 import ComplexTable from '@/components/business/complex-table'
 import { formatCondition, formatQuickCondition, addOrder, formatOrders } from '@/utils/index'
 import '@riophae/vue-treeselect/dist/vue-treeselect.css'
-import { post} from '@/api/dataset/dataset'
-import cron from '@/components/cron/cron'
-import TableSelector from '@/views/chart/view/TableSelector'
-
+import { post } from '@/api/dataset/dataset'
+import {loadMenus} from "@/permission";
 
 export default {
   name: 'TaskRecord',
-  components: { ComplexTable, LayoutContent, cron, TableSelector},
+  components: { ComplexTable },
+  props: {
+    param: {
+      type: Object,
+      default: null
+    },
+    transCondition: {
+      type: Object,
+      default: null
+    }
+  },
   data() {
     return {
       header: '',
@@ -72,8 +86,10 @@ export default {
         useComplexSearch: true,
         quickPlaceholder: this.$t('dataset.task.search_by_name'),
         components: [
-          { field: 'dataset_table_task.name', label: this.$t('dataset.task.name'), component: 'DeComplexInput' },
-          { field: 'dataset_table_task_log.status', label: this.$t('commons.status'), component: 'FuComplexSelect', options: [{ label: this.$t('dataset.completed'), value: 'Completed' }, { label: this.$t('dataset.underway'), value: 'Underway' }, { label: this.$t('dataset.error'), value: 'Error' }], multiple: false}
+          { field: 'dataset_table_task.name', label: this.$t('dataset.task_name'), component: 'FuComplexInput' },
+          { field: 'dataset_table_task.id', label: this.$t('dataset.task_id'), component: 'FuComplexInput' },
+          { field: 'dataset_table.name', label: this.$t('dataset.name'), component: 'DeComplexInput' },
+          { field: 'dataset_table_task_log.status', label: this.$t('commons.status'), component: 'FuComplexSelect', options: [{ label: this.$t('dataset.completed'), value: 'Completed' }, { label: this.$t('dataset.underway'), value: 'Underway' }, { label: this.$t('dataset.error'), value: 'Error' }], multiple: false }
         ]
       },
       paginationConfig: {
@@ -100,21 +116,40 @@ export default {
       orderConditions: [],
       last_condition: null,
       show_error_massage: false,
-      error_massage: ''
+      error_massage: '',
+      matchLogId: null,
+      lastRequestComplete: true
     }
-  },
-  created() {
-    this.search()
-    this.timer = setInterval(() => {
-      this.search(this.last_condition, false)
-    }, 5000)
   },
   computed: {
   },
+  created() {
+    if (this.param !== null && this.param.taskId) {
+      this.matchLogId = this.param.logId || this.matchLogId
+      this.transCondition['dataset_table_task.id'] = {
+            operator: 'eq',
+            value: this.param.taskId
+        }
+    }
+    this.createTimer()
+  },
   beforeDestroy() {
-    clearInterval(this.timer)
+    this.destroyTimer()
   },
   methods: {
+    createTimer() {
+      if (!this.timer) {
+        this.timer = setInterval(() => {
+          this.search(this.last_condition, false)
+        }, 1000)
+      }
+    },
+    destroyTimer() {
+      if (this.timer) {
+        clearInterval(this.timer)
+        this.timer = null
+      }
+    },
     sortChange({ column, prop, order }) {
       this.orderConditions = []
       if (!order) {
@@ -133,20 +168,38 @@ export default {
     },
     select(selection) {
     },
-    search(condition) {
+    search(condition, showLoading = true) {
+      if(!this.lastRequestComplete){
+        return;
+      }else {
+        this.lastRequestComplete = false;
+      }
+
       this.last_condition = condition
       condition = formatQuickCondition(condition, 'dataset_table_task.name')
       const temp = formatCondition(condition)
       const param = temp || {}
       param['orders'] = formatOrders(this.orderConditions)
-      post('/dataset/taskLog/list/' + this.paginationConfig.currentPage + '/' + this.paginationConfig.pageSize, param).then(response => {
+      post('/dataset/taskLog/list/notexcel/' + this.paginationConfig.currentPage + '/' + this.paginationConfig.pageSize, param, showLoading).then(response => {
         this.data = response.data.listObject
         this.paginationConfig.total = response.data.itemCount
+        this.lastRequestComplete = true;
+      }).catch(() => {
+        this.lastRequestComplete = true;
       })
     },
     showErrorMassage(massage) {
       this.show_error_massage = true
       this.error_massage = massage
+    },
+    jumpTask(item) {
+      this.$emit('jumpTask', item)
+    },
+    rowClassMethod({ row, rowIndex }) {
+      if (this.matchLogId && this.matchLogId === row.id) {
+        return 'row-match-class'
+      }
+      return ''
     }
   }
 }
